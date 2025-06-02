@@ -1,0 +1,40 @@
+.link {
+  align-items: center;
+  background-color: transparent;
+  border-radius: 40px;
+  box-sizing: border-box;
+  color: var(--colors-button-inactive);
+  cursor: pointer;
+  display: flex;
+  margin: 0;
+  outline: none;
+  text-decoration: none;
+  transition:
+    color 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  white-space: nowrap;
+}
+
+.link:hover {
+  opacity: 0.8;
+}
+
+.link:focus {
+  transform: scale(1.1);
+  opacity: 0.8;
+}
+
+.link_active {
+  color: var(--text-primary-color);
+}
+
+.link_active:hover {
+  cursor: default;
+  opacity: 1;
+}
+
+.link_active:focus {
+  transform: scale(1);
+  opacity: 1;
+}
