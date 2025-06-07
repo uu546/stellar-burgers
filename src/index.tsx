@@ -1,22 +1,19 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux';
+import * as ReactDOMClient from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-
+import { Provider } from 'react-redux';
+import store from './services/store';
 import App from './components/app/app';
-import './index.css';
-import { store } from './services';
 
-const root = ReactDOM.createRoot(
-  document.querySelector('#root') as HTMLDivElement,
-);
+const container = document.getElementById('root') as HTMLElement;
+const root = ReactDOMClient.createRoot(container!);
 
 root.render(
-  <Provider store={store}>
-    <React.StrictMode>
-      <BrowserRouter basename={process.env.PUBLIC_URL}>
+  <React.StrictMode>
+    <Provider store={store}>
+      <BrowserRouter>
         <App />
       </BrowserRouter>
-    </React.StrictMode>
-  </Provider>,
+    </Provider>
+  </React.StrictMode>
 );

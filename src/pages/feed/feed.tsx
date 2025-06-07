@@ -1,40 +1,32 @@
-import clsx from 'clsx';
-import { useEffect } from 'react';
+import { FC, useEffect } from 'react';
 
-import Loader from '../../components/loader/loader';
-import OrderData from '../../components/order-data/order-data';
-import OrderList from '../../components/order-list/order-list';
-import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
-import { getWebsocket } from '../../services/helpers/getSelector';
+import { Preloader } from '@ui';
+import { useSelector, useDispatch } from '../../services/store';
 import {
-  wsConnectionClosed,
-  wsConnectionStart,
-} from '../../services/slices/wsSlice';
-import { WSS_FOR_ALL_ORDERS } from '../../utils/config';
-import styles from './feed.module.css';
+  getAllFeedsThunk,
+  ordersSelector
+} from '../../services/slices/feedSlice';
+import { FeedUI } from '@ui-pages';
+import { TOrder } from '@utils-types';
 
-const FeedPage = () => {
-  const dispatch = useAppDispatch();
-  const { orders } = useAppSelector(getWebsocket);
+export const Feed: FC = () => {
+  const dispatch = useDispatch();
+  const orders: TOrder[] = useSelector(ordersSelector);
 
   useEffect(() => {
-    dispatch(wsConnectionStart(`${WSS_FOR_ALL_ORDERS}`));
-    return () => {
-      dispatch(wsConnectionClosed());
-    };
-  }, [dispatch]);
+    dispatch(getAllFeedsThunk());
+  }, []);
 
-  return orders ? (
-    <div className={clsx(styles.container)}>
-      <h2 className={clsx('text', 'text_type_main-large')}>Лента заказов</h2>
-      <section className={styles.feed}>
-        <OrderList />
-        <OrderData />
-      </section>
-    </div>
-  ) : (
-    <Loader />
+  if (!orders.length) {
+    return <Preloader />;
+  }
+
+  return (
+    <FeedUI
+      orders={orders}
+      handleGetFeeds={() => {
+        dispatch(getAllFeedsThunk());
+      }}
+    />
   );
 };
-
-export default FeedPage;

@@ -1,174 +1,173 @@
-import { PayloadAction, createSlice } from '@reduxjs/toolkit';
-
-import { State } from '../../types/State';
-import { Token } from '../../types/Token';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { RootState } from '../store';
 import {
-  ACCESS_TOKEN,
-  ERROR_DEFAULT,
-  ERROR_USER_EXISTS,
-  EXPIRES_AT,
-  NOTIFICATION_LOGIN_SUCCESS,
-  NOTIFICATION_USER_UPDATE_ERROR,
-  NOTIFICATION_USER_UPDATE_SUCCESS,
-  REFRESH_TOKEN,
-} from '../../utils/constants';
-import { fetchGetUser } from '../asyncThunk/getUserThunk';
-import { fetchUpdateUser } from '../asyncThunk/updateUserThunk';
-import { getCookie } from '../helpers/getCookie';
+  getOrdersApi,
+  getUserApi,
+  loginUserApi,
+  logoutApi,
+  registerUserApi,
+  updateUserApi,
+  TLoginData,
+  TRegisterData,
+  refreshToken,
+  TAuthResponse
+} from '../../utils/burger-api';
+import { TOrder, TUser } from '../../utils/types';
+import { deleteCookie, setCookie } from '../../utils/cookie';
 
-export type UserState = {
-  getUserRequest: State;
-  patchUserRequest: State;
-  user: {
-    email: string;
-    isLogin: boolean;
-    isLogout: boolean;
-    name: string;
-    token: Token;
-  };
+type TUserState = {
+  isAuth: boolean;
+  isLoading: boolean;
+  user: TUser | null;
+  orders: TOrder[];
+  error: string | null | undefined;
 };
 
-const initialState: UserState = {
-  getUserRequest: {
-    error: false,
-    errorMessage: false,
-    errorMessageContent: ERROR_DEFAULT,
-    fetch: false,
-    message: false,
-    messageContent: NOTIFICATION_LOGIN_SUCCESS,
-  },
-  patchUserRequest: {
-    error: false,
-    errorMessage: false,
-    errorMessageContent: NOTIFICATION_USER_UPDATE_ERROR,
-    fetch: false,
-    message: false,
-    messageContent: NOTIFICATION_USER_UPDATE_SUCCESS,
-  },
-  user: {
-    email: '',
-    isLogin: !!getCookie(ACCESS_TOKEN) || false,
-    isLogout: false,
-    name: '',
-    token: {
-      accessToken: getCookie(ACCESS_TOKEN) ?? null,
-      expiresAt: getCookie(EXPIRES_AT) ?? null,
-      refreshToken: getCookie(REFRESH_TOKEN) ?? null,
-    },
-  },
+export const initialState: TUserState = {
+  isAuth: false,
+  isLoading: false,
+  user: null,
+  orders: [],
+  error: null
 };
 
-const userSlice = createSlice({
-  extraReducers: (builder) => {
-    builder
-      // Get user
-      .addCase(fetchGetUser.pending, (state) => {
-        state.getUserRequest = {
-          ...initialState.getUserRequest,
-          fetch: true,
-        };
-      })
-      .addCase(fetchGetUser.fulfilled, (state, action) => {
-        const { user } = action.payload;
-        const { email, name } = user;
+export const loginUserThunk = createAsyncThunk(
+  'user/loginUser',
+  async ({ email, password }: TLoginData) => {
+    const responce = await loginUserApi({ email, password });
+    const { refreshToken, accessToken, user }: TAuthResponse = responce;
 
-        state.getUserRequest = {
-          ...state.getUserRequest,
-          fetch: false,
-        };
+    setCookie('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    return user;
+  }
+);
 
-        state.user = {
-          ...state.user,
-          email,
-          isLogin: true,
-          name,
-        };
-      })
-      .addCase(fetchGetUser.rejected, (state, action) => {
-        if (action.payload && 'message' in action.payload) {
-          const { message } = action.payload;
-          state.getUserRequest = {
-            ...state.getUserRequest,
-            error: true,
-            errorMessageContent: message || ERROR_DEFAULT,
-            fetch: false,
-          };
-          state.user = {
-            ...state.user,
-            isLogin: false,
-          };
-        } else {
-          console.error('action.payload is undefined');
-        }
-      })
-      // Update user
-      .addCase(fetchUpdateUser.pending, (state) => {
-        state.patchUserRequest = {
-          ...initialState.patchUserRequest,
-          fetch: true,
-        };
-      })
-      .addCase(fetchUpdateUser.fulfilled, (state, action) => {
-        const { user } = action.payload;
-        const { email, name } = user;
+export const registerUserThunk = createAsyncThunk(
+  'user/registerUser',
+  async ({ email, password, name }: TRegisterData) => {
+    const responce = await registerUserApi({ email, password, name });
+    const { refreshToken, accessToken, user }: TAuthResponse = responce;
 
-        state.patchUserRequest = {
-          ...state.patchUserRequest,
-          fetch: false,
-          message: true,
-        };
+    setCookie('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    return user;
+  }
+);
 
-        state.user = {
-          ...state.user,
-          email,
-          isLogin: true,
-          name,
-        };
-      })
-      .addCase(fetchUpdateUser.rejected, (state, action) => {
-        if (action.payload && 'message' in action.payload) {
-          const { message } = action.payload;
-          state.patchUserRequest = {
-            ...state.patchUserRequest,
-            error: true,
-            errorMessage: true,
-            fetch: false,
-          };
-          message && message === 'User with such email already exists'
-            ? (state.patchUserRequest.errorMessageContent = ERROR_USER_EXISTS)
-            : (state.patchUserRequest.errorMessageContent =
-                message || NOTIFICATION_USER_UPDATE_ERROR);
-        } else {
-          console.error('action.payload is undefined');
-        }
-      });
-  },
-  initialState,
-  name: 'user',
-  reducers: {
-    setError(state, action: PayloadAction<boolean>) {
-      state.patchUserRequest = {
-        ...state.patchUserRequest,
-        errorMessage: action.payload,
-      };
-    },
-    updateUser(
-      state,
-      action: PayloadAction<{
-        email?: string;
-        isLogin?: boolean;
-        isLogout?: boolean;
-        name?: string;
-        token?: Token;
-      }>,
-    ) {
-      state.user = {
-        ...state.user,
-        ...action.payload,
-      };
-    },
-  },
+export const logoutUserThunk = createAsyncThunk('user/logoutUser', async () => {
+  await logoutApi();
+  deleteCookie('accessToken');
+  localStorage.removeItem('refreshToken');
 });
 
-export const { setError, updateUser } = userSlice.actions;
+export const getUserThunk = createAsyncThunk(
+  'user/getUser',
+  async () => await getUserApi()
+);
+
+export const updateUserThunk = createAsyncThunk(
+  'user/updateUser',
+  async (userData: TRegisterData) => {
+    const updateUser = await updateUserApi(userData);
+    return updateUser;
+  }
+);
+
+export const getOrdersThunk = createAsyncThunk(
+  'user/getOrders',
+  async () => await getOrdersApi()
+);
+
+const userSlice = createSlice({
+  name: 'user',
+  initialState,
+  reducers: {
+    clearErrors: (state) => {
+      state.error = null;
+    }
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(loginUserThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loginUserThunk.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isLoading = false;
+        state.isAuth = true;
+      })
+      .addCase(loginUserThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message;
+      })
+      .addCase(registerUserThunk.pending, (state) => {
+        state.isAuth = false;
+        state.isLoading = true;
+      })
+      .addCase(registerUserThunk.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isLoading = false;
+        state.isAuth = true;
+      })
+      .addCase(registerUserThunk.rejected, (state, action) => {
+        state.isAuth = false;
+        state.isLoading = false;
+        state.error = action.error.message;
+      })
+      .addCase(logoutUserThunk.pending, (state) => {
+        state.user = null;
+        state.isLoading = false;
+        state.isAuth = false;
+      })
+      .addCase(getUserThunk.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getUserThunk.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.isLoading = false;
+        state.isAuth = true;
+      })
+      .addCase(getUserThunk.rejected, (state, action) => {
+        state.user = null;
+        state.isLoading = false;
+        state.error = action.error.message;
+      })
+      .addCase(updateUserThunk.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateUserThunk.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.isLoading = false;
+        state.isAuth = true;
+      })
+      .addCase(updateUserThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message;
+      })
+      .addCase(getOrdersThunk.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getOrdersThunk.fulfilled, (state, action) => {
+        state.orders = action.payload;
+        state.isLoading = false;
+      })
+      .addCase(getOrdersThunk.rejected, (state, action) => {
+        state.error = action.error.message;
+        state.isLoading = false;
+      });
+  }
+});
+
+export const { clearErrors } = userSlice.actions;
+
+export const isAuthCheckedSelector = (state: RootState) => state.user.isAuth;
+export const isLoadingSelector = (state: RootState) => state.user.isLoading;
+export const userDataSelector = (state: RootState) => state.user.user;
+export const userNameSelector = (state: RootState) => state.user.user?.name;
+export const userEmailSelector = (state: RootState) => state.user.user?.email;
+export const userOrdersSelector = (state: RootState) => state.user.orders;
+export const errorSelector = (state: RootState) => state.user.error;
+
 export default userSlice.reducer;

@@ -1,40 +1,48 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { RootState } from '../store';
+import { TIngredient } from '../../utils/types';
+import { getIngredientsApi } from '../../utils/burger-api';
 
-import { Ingredient } from '../../types/Ingredient';
-import { fetchIngredients } from '../asyncThunk/ingredientsThunk';
-
-export type IngredientsState = {
-  ingredients: Ingredient[];
-  ingredientsFetchFailed: boolean;
-  ingredientsFetchRequest: boolean;
+type TIngredientsState = {
+  ingredients: TIngredient[];
+  ingredientsLoading: boolean;
+  error: string | null | undefined;
 };
 
-const initialState: IngredientsState = {
+export const initialState: TIngredientsState = {
   ingredients: [],
-  ingredientsFetchFailed: false,
-  ingredientsFetchRequest: false,
+  ingredientsLoading: false,
+  error: null
 };
+
+export const getIngredientsThunk = createAsyncThunk(
+  'ingredients/getIngredientsThunk',
+  async () => getIngredientsApi()
+);
 
 const ingredientsSlice = createSlice({
+  name: 'ingredients',
+  initialState,
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchIngredients.pending, (state) => {
-        state.ingredientsFetchRequest = true;
-        state.ingredientsFetchFailed = false;
+      .addCase(getIngredientsThunk.pending, (state) => {
+        state.ingredientsLoading = true;
       })
-      .addCase(fetchIngredients.fulfilled, (state, action) => {
-        const { data } = action.payload;
-        state.ingredients = data;
-        state.ingredientsFetchRequest = false;
+      .addCase(getIngredientsThunk.fulfilled, (state, action) => {
+        state.ingredients = action.payload;
+        state.ingredientsLoading = false;
       })
-      .addCase(fetchIngredients.rejected, (state) => {
-        state.ingredientsFetchRequest = false;
-        state.ingredientsFetchFailed = true;
+      .addCase(getIngredientsThunk.rejected, (state, action) => {
+        state.ingredientsLoading = false;
+        state.error = action.error.message;
       });
-  },
-  initialState,
-  name: 'ingredients',
-  reducers: {},
+  }
 });
+
+export const ingredientsSelector = (state: RootState) =>
+  state.ingredients.ingredients;
+export const ingredientsLoadingSelector = (state: RootState) =>
+  state.ingredients.ingredientsLoading;
 
 export default ingredientsSlice.reducer;

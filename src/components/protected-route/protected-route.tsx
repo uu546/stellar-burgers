@@ -1,38 +1,36 @@
-import { JSX, ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { FC } from 'react';
+import { Navigate, useLocation } from 'react-router';
+import { useSelector } from '../../services/store';
+import {
+  isAuthCheckedSelector,
+  isLoadingSelector
+} from '../../services/slices/userSlice';
+import { Preloader } from '../ui/preloader';
 
-import { useAppSelector } from '../../hooks/useRedux';
-import { getUser } from '../../services/helpers/getSelector';
-import { PATH } from '../../utils/config';
-
-type Props = {
-  anonymous?: boolean;
-  children?: ReactNode;
+type ProtectedRouteProps = {
+  children: React.ReactElement;
+  onlyUnAuth?: boolean;
 };
 
-const ProtectedRoute = ({
-  anonymous = false,
-  children,
-}: Props): JSX.Element => {
-  const { user } = useAppSelector(getUser);
+export const ProtectedRoute: FC<ProtectedRouteProps> = ({
+  onlyUnAuth,
+  children
+}: ProtectedRouteProps) => {
+  const isAuthChecked = useSelector(isAuthCheckedSelector);
+  const loadingSelector = useSelector(isLoadingSelector);
   const location = useLocation();
-  const from = location?.state?.from || PATH.HOME;
 
-  if (anonymous && user.isLogin) {
-    return <Navigate replace={true} to={from} />;
+  if (!isAuthChecked && loadingSelector) {
+    return <Preloader />;
   }
 
-  if (!anonymous && !user.isLogin && user.isLogout) {
-    return <Navigate to={PATH.HOME} />;
+  if (!onlyUnAuth && !isAuthChecked) {
+    return <Navigate replace to='/login' state={{ from: location }} />;
   }
 
-  if (!anonymous && !user.isLogin) {
-    return (
-      <Navigate replace={true} state={{ from: location }} to={PATH.LOGIN} />
-    );
+  if (onlyUnAuth && isAuthChecked) {
+    const from = location.state?.from || { pathname: '/' };
+    return <Navigate replace to={from} state={location} />;
   }
-
-  return <>{children}</>;
+  return children;
 };
-
-export default ProtectedRoute;

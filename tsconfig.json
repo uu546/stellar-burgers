@@ -1,24 +1,32 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
+    "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "noEmit": true,
-    "noFallthroughCasesInSwitch": true,
-    "resolveJsonModule": true,
+    "allowJs": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "strict": true,
-    "target": "ESNext"
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "types": ["node", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@pages": ["src/pages"],
+      "@components": ["src/components"],
+      "@ui": ["src/components/ui"],
+      "@ui-pages": ["src/components/ui/pages"],
+      "@utils-types": ["src/utils/types"],
+      "@api": ["src/utils/burger-api.ts"],
+      "@slices": ["src/services/slices"],
+      "@selectors": ["src/services/selectors"]
+    }
   },
-  "exclude": ["node_modules", "src/**/*.spec.ts"],
-  "include": ["./declaration.d.ts", "src/**/*"],
-  "parserOptions": {
-    "project": "./tsconfig.json"
-  }
+  "include": ["src"]
 }

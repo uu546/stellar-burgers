@@ -1,55 +1,66 @@
-import clsx from 'clsx';
-import { Outlet, useLocation } from 'react-router-dom';
+import { FC, SyntheticEvent, useEffect, useState } from 'react';
+import { ProfileUI } from '@ui-pages';
+import { useDispatch, useSelector } from '../../services/store';
+import {
+  updateUserThunk,
+  userDataSelector,
+  clearErrors,
+  errorSelector
+} from '../../services/slices/userSlice';
+export const Profile: FC = () => {
+  const dispatch = useDispatch();
+  const user = useSelector(userDataSelector);
+  const error = useSelector(errorSelector);
 
-import Loader from '../../components/loader/loader';
-import ProfileMenu from '../../components/profile-menu/profile-menu';
-import { useAppSelector } from '../../hooks/useRedux';
-import { getUser } from '../../services/helpers/getSelector';
-import { PATH } from '../../utils/config';
-import styles from './profile.module.css';
+  const [formValue, setFormValue] = useState({
+    name: user?.name!,
+    email: user?.email!,
+    password: ''
+  });
 
-const ProfileLayout = () => {
-  const { user } = useAppSelector(getUser);
-  const location = useLocation();
+  useEffect(() => {
+    setFormValue((prevState) => ({
+      ...prevState,
+      name: user?.name || '',
+      email: user?.email || ''
+    }));
+    clearErrors();
+  }, [user]);
 
-  return user.isLogin ? (
-    <div className={clsx(styles.container)}>
-      <aside className={clsx(styles.aside)}>
-        <ProfileMenu />
-        <>
-          {location.pathname === PATH.PROFILE && (
-            <p
-              className={clsx(
-                'text',
-                'text_type_main-default',
-                'text_color_inactive',
-              )}
-            >
-              В&nbsp;этом&nbsp;разделе вы можете изменить
-              свои&nbsp;персональные&nbsp;данные
-            </p>
-          )}
-          {location.pathname === PATH.ORDERS && (
-            <p
-              className={clsx(
-                'text',
-                'text_type_main-default',
-                'text_color_inactive',
-              )}
-            >
-              В&nbsp;этом&nbsp;разделе вы можете просмотреть
-              свою&nbsp;историю&nbsp;заказов
-            </p>
-          )}
-        </>
-      </aside>
-      <section className={clsx(styles.section)}>
-        <Outlet />
-      </section>
-    </div>
-  ) : (
-    <Loader />
+  const isFormChanged =
+    formValue.name !== user?.name ||
+    formValue.email !== user?.email ||
+    !!formValue.password;
+
+  const handleSubmit = (e: SyntheticEvent) => {
+    e.preventDefault();
+    dispatch(updateUserThunk(formValue));
+  };
+
+  const handleCancel = (e: SyntheticEvent) => {
+    e.preventDefault();
+    setFormValue({
+      name: user?.name!,
+      email: user?.email!,
+      password: ''
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormValue((prevState) => ({
+      ...prevState,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  return (
+    <ProfileUI
+      formValue={formValue}
+      isFormChanged={isFormChanged}
+      handleCancel={handleCancel}
+      handleSubmit={handleSubmit}
+      handleInputChange={handleInputChange}
+      updateUserError={error!}
+    />
   );
 };
-
-export default ProfileLayout;

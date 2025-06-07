@@ -1,62 +1,37 @@
-import clsx from 'clsx';
+import { FC } from 'react';
+import { useParams } from 'react-router-dom';
+import { Preloader } from '../ui/preloader';
+import { IngredientDetailsUI } from '../ui/ingredient-details';
+import { useSelector } from '../../services/store';
+import { ingredientsSelector } from '../../services/slices/ingredientsSlice';
 
-import { Ingredient } from '../../types/Ingredient';
-import styles from './ingredient-details.module.css';
-
-type Props = {
-  ingredient: Ingredient;
+type IngredientDetailsProps = {
+  title?: string;
+  isModal?: boolean;
 };
-const IngredientDetails = ({ ingredient }: Props) => {
+
+export const IngredientDetails: FC<IngredientDetailsProps> = ({
+  title,
+  isModal
+}) => {
+  /** TODO: взять переменную из стора */
+  const { id } = useParams();
+  const ingredients = useSelector(ingredientsSelector);
+  const ingredientData = ingredients.find(
+    (ingredient) => ingredient._id === id
+  );
+
+  if (!ingredientData) {
+    return <Preloader />;
+  }
+
   return (
-    <div className={clsx(styles.ingredientDetail)}>
-      <picture className={clsx(styles.ingredientDetail__picture)}>
-        <source media="(max-width: 480px)" srcSet={ingredient.image_mobile} />
-        <source media="(min-width: 1400px)" srcSet={ingredient.image_large} />
-        <img
-          alt={ingredient.name}
-          className={clsx(styles.ingredientDetail__image)}
-          src={ingredient.image}
-        />
-      </picture>
-      <div className={clsx(styles.ingredientDetail__content, 'mt-4')}>
-        <h4
-          className={clsx(
-            styles.ingredientDetail__title,
-            'text',
-            'text_type_main-medium',
-          )}
-        >
-          {ingredient.name}
-        </h4>
-        <div
-          className={clsx(
-            styles.ingredientDetail__nutritionFacts,
-            'mt-8',
-            'text',
-            'text_type_main-default',
-            'text_color_inactive',
-          )}
-        >
-          <span>Калории,ккал</span>
-          <span>Белки, г</span>
-          <span>Жиры, г</span>
-          <span>Углеводы, г</span>
-          <span className={clsx('text_type_digits-default')}>
-            {ingredient.calories}
-          </span>
-          <span className={clsx('text_type_digits-default')}>
-            {ingredient.proteins}
-          </span>
-          <span className={clsx('text_type_digits-default')}>
-            {ingredient.fat}
-          </span>
-          <span className={clsx('text_type_digits-default')}>
-            {ingredient.carbohydrates}
-          </span>
-        </div>
-      </div>
+    <div>
+      <IngredientDetailsUI
+        title={title}
+        ingredientData={ingredientData}
+        isModal={isModal}
+      />
     </div>
   );
 };
-
-export default IngredientDetails;

@@ -1,70 +1,53 @@
-import { PayloadAction, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { RootState } from '../store';
+import { orderBurgerApi } from '../../utils/burger-api';
+import { TOrder } from '../../utils/types';
 
-import { Order } from '../../types/Order';
-import { State } from '../../types/State';
-import {
-  ERROR_DEFAULT,
-  NOTIFICATION_ORDER_PENDING,
-} from '../../utils/constants';
-import { createOrder } from '../asyncThunk/orderThunk';
-
-export type OrderState = {
-  order: Order | null;
-  orderNumber: null | string;
+type TOrderState = {
+  order: TOrder | null;
+  isOrderLoading: boolean;
+  error: string | null | undefined;
 };
 
-const initialState: OrderState & State = {
-  error: false,
-  errorMessage: false,
-  errorMessageContent: ERROR_DEFAULT,
-  fetch: false,
-  message: false,
-  messageContent: NOTIFICATION_ORDER_PENDING,
+export const initialState: TOrderState = {
   order: null,
-  orderNumber: null,
+  isOrderLoading: false,
+  error: null
 };
+
+export const orderBurgerThunk = createAsyncThunk(
+  'orders/postOrderBurger',
+  async (order: string[]) => await orderBurgerApi(order)
+);
 
 const orderSlice = createSlice({
-  extraReducers: (builder) => {
-    builder
-      .addCase(createOrder.pending, (state) => {
-        state.fetch = true;
-        state.error = false;
-        state.message = false;
-        state.errorMessage = false;
-      })
-      .addCase(createOrder.fulfilled, (state, action) => {
-        const { order } = action.payload;
-        const { number } = order;
-        state.order = order;
-        state.orderNumber = number.toString();
-        state.fetch = false;
-        state.message = true;
-      })
-      .addCase(createOrder.rejected, (state, action) => {
-        if (action.payload?.message) {
-          state.errorMessage = true;
-          state.errorMessageContent = action.payload.message;
-        }
-
-        state.fetch = false;
-        state.error = true;
-      });
-  },
-  initialState,
   name: 'order',
+  initialState,
   reducers: {
-    setErrorMessage(state, action: PayloadAction<boolean>) {
-      state.errorMessage = action.payload;
-    },
-    setMessage(state, action: PayloadAction<boolean>) {
-      state.message = action.payload;
-    },
-    setOrder(state, action: PayloadAction<Order>) {
-      state.order = action.payload;
-    },
+    clearOrder: (state) => {
+      state.order = null;
+      state.isOrderLoading = false;
+    }
   },
+  extraReducers: (builder) => {
+    builder.addCase(orderBurgerThunk.pending, (state) => {
+      state.isOrderLoading = true;
+    });
+    builder.addCase(orderBurgerThunk.fulfilled, (state, action) => {
+      state.isOrderLoading = false;
+      state.order = action.payload.order;
+    });
+    builder.addCase(orderBurgerThunk.rejected, (state, action) => {
+      state.isOrderLoading = false;
+      state.error = action.error.message;
+    });
+  }
 });
-export const { setErrorMessage, setMessage, setOrder } = orderSlice.actions;
+
+export const { clearOrder } = orderSlice.actions;
+
+export const isOrderLoadingSelector = (state: RootState) =>
+  state.order.isOrderLoading;
+export const orderSelector = (state: RootState) => state.order.order;
 
 export default orderSlice.reducer;
